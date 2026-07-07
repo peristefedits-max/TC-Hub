@@ -1,0 +1,324 @@
+--[[
+    TC Hub - Custom GUI with:
+    - Movable, resizable, rainbow border
+    - Brookhaven background image
+    - 5 fixed image buttons: Pop It Trading, Brookhaven, MM2, Admin Scripts, Infinite Yield
+    - Dynamic script loading from GitHub manifest
+]]
+
+-- // Services
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+
+-- // Helper: HSV to RGB (rainbow animation)
+local function HSVtoRGB(h, s, v)
+    h = h % 1
+    local r, g, b
+    local i = math.floor(h * 6)
+    local f = h * 6 - i
+    local p = v * (1 - s)
+    local q = v * (1 - f * s)
+    local t = v * (1 - (1 - f) * s)
+    i = i % 6
+    if i == 0 then r, g, b = v, t, p
+    elseif i == 1 then r, g, b = q, v, p
+    elseif i == 2 then r, g, b = p, v, t
+    elseif i == 3 then r, g, b = p, q, v
+    elseif i == 4 then r, g, b = t, p, v
+    elseif i == 5 then r, g, b = v, p, q
+    end
+    return Color3.new(r, g, b)
+end
+
+-- // ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "TCHub"
+gui.ResetOnSpawn = false
+gui.Parent = CoreGui
+
+-- // Rainbow border (slightly larger than main)
+local Border = Instance.new("Frame")
+Border.Size = UDim2.new(0, 350, 0, 450)
+Border.Position = UDim2.new(0.5, -175, 0.5, -225)
+Border.BackgroundColor3 = HSVtoRGB(0, 0.9, 1)
+Border.BorderSizePixel = 0
+Border.Parent = gui
+
+local BorderCorner = Instance.new("UICorner", Border)
+BorderCorner.CornerRadius = UDim.new(0, 12)
+
+-- // Main window (2px smaller to show border)
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(1, -4, 1, -4)
+Main.Position = UDim2.new(0, 2, 0, 2)
+Main.BackgroundTransparency = 1
+Main.BorderSizePixel = 0
+Main.ClipsDescendants = true
+Main.Parent = Border
+
+local MainCorner = Instance.new("UICorner", Main)
+MainCorner.CornerRadius = UDim.new(0, 10)
+
+-- // Brookhaven background image (full size behind everything)
+local BgImage = Instance.new("ImageLabel")
+BgImage.Size = UDim2.new(1, 0, 1, 0)
+BgImage.BackgroundTransparency = 1
+BgImage.ScaleType = Enum.ScaleType.Crop
+BgImage.Image = "rbxassetid://7225645840" -- Brookhaven iconic thumbnail (replace with your own)
+BgImage.Parent = Main
+
+-- // Dark overlay so text is readable
+local Overlay = Instance.new("Frame")
+Overlay.Size = UDim2.new(1, 0, 1, 0)
+Overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Overlay.BackgroundTransparency = 0.6
+Overlay.BorderSizePixel = 0
+Overlay.Parent = Main
+
+-- // Header bar (semi-transparent)
+local Header = Instance.new("TextLabel")
+Header.Size = UDim2.new(1, 0, 0, 36)
+Header.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Header.BackgroundTransparency = 0.3
+Header.Text = "TC Hub"
+Header.TextColor3 = Color3.fromRGB(255, 255, 255)
+Header.Font = Enum.Font.GothamBold
+Header.TextSize = 20
+Header.BorderSizePixel = 0
+Header.Parent = Main
+
+local HeaderCorner = Instance.new("UICorner", Header)
+HeaderCorner.CornerRadius = UDim.new(0, 10)
+
+-- // Close button
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 3)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 16
+CloseBtn.BorderSizePixel = 0
+CloseBtn.Parent = Header
+
+local CloseCorner = Instance.new("UICorner", CloseBtn)
+CloseCorner.CornerRadius = UDim.new(0, 6)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+-- // Script list area (transparent background)
+local ScriptList = Instance.new("ScrollingFrame")
+ScriptList.Size = UDim2.new(1, -10, 1, -46)
+ScriptList.Position = UDim2.new(0, 5, 0, 41)
+ScriptList.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+ScriptList.BackgroundTransparency = 0.5
+ScriptList.BorderSizePixel = 0
+ScriptList.ScrollBarThickness = 4
+ScriptList.ScrollBarImageColor3 = Color3.fromRGB(150, 150, 150)
+ScriptList.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScriptList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ScriptList.Parent = Main
+
+local ListCorner = Instance.new("UICorner", ScriptList)
+ListCorner.CornerRadius = UDim.new(0, 8)
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 6)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Parent = ScriptList
+
+-- // Resize handle (bottom‑right)
+local Resize = Instance.new("TextButton")
+Resize.Size = UDim2.new(0, 20, 0, 20)
+Resize.Position = UDim2.new(1, -20, 1, -20)
+Resize.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+Resize.Text = ""
+Resize.BorderSizePixel = 0
+Resize.Parent = Main
+
+local ResizeCorner = Instance.new("UICorner", Resize)
+ResizeCorner.CornerRadius = UDim.new(0, 4)
+
+-- // Drag functionality (header)
+local dragging, dragStart, startPos
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = Border.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        Border.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- // Resize functionality
+local resizing, resizeStart, startSize
+Resize.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        resizing = true
+        resizeStart = input.Position
+        startSize = Border.Size
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                resizing = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - resizeStart
+        local newWidth = math.clamp(startSize.X.Offset + delta.X, 250, 800)
+        local newHeight = math.clamp(startSize.Y.Offset + delta.Y, 300, 900)
+        Border.Size = UDim2.new(0, newWidth, 0, newHeight)
+    end
+end)
+
+-- // Rainbow border animation
+local hue = 0
+RunService.Heartbeat:Connect(function(dt)
+    hue = hue + dt * 0.3
+    if hue > 1 then hue -= 1 end
+    Border.BackgroundColor3 = HSVtoRGB(hue, 0.9, 1)
+end)
+
+-- // Function: create an image button
+local function CreateImageButton(name, imageId, scriptUrl, layoutOrder)
+    local BtnFrame = Instance.new("Frame")
+    BtnFrame.Name = name
+    BtnFrame.Size = UDim2.new(1, -10, 0, 90)  -- taller for image
+    BtnFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    BtnFrame.BackgroundTransparency = 0.4
+    BtnFrame.BorderSizePixel = 0
+    BtnFrame.LayoutOrder = layoutOrder
+    BtnFrame.ClipsDescendants = true
+    BtnFrame.Parent = ScriptList
+
+    local BtnCorner = Instance.new("UICorner", BtnFrame)
+    BtnCorner.CornerRadius = UDim.new(0, 10)
+
+    -- Background image for the button
+    local BtnImage = Instance.new("ImageLabel")
+    BtnImage.Size = UDim2.new(1, 0, 1, 0)
+    BtnImage.BackgroundTransparency = 1
+    BtnImage.ScaleType = Enum.ScaleType.Crop
+    BtnImage.Image = imageId  -- Use Roblox asset ID or URL
+    BtnImage.Parent = BtnFrame
+
+    -- Dark overlay so text pops
+    local ImageOverlay = Instance.new("Frame")
+    ImageOverlay.Size = UDim2.new(1, 0, 1, 0)
+    ImageOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    ImageOverlay.BackgroundTransparency = 0.5
+    ImageOverlay.BorderSizePixel = 0
+    ImageOverlay.Parent = BtnFrame
+
+    -- Text label
+    local BtnText = Instance.new("TextLabel")
+    BtnText.Size = UDim2.new(1, 0, 1, 0)
+    BtnText.BackgroundTransparency = 1
+    BtnText.Text = name
+    BtnText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    BtnText.Font = Enum.Font.GothamBold
+    BtnText.TextSize = 18
+    BtnText.TextStrokeTransparency = 0.6
+    BtnText.Parent = BtnFrame
+
+    -- Make it clickable
+    local BtnButton = Instance.new("TextButton")
+    BtnButton.Size = UDim2.new(1, 0, 1, 0)
+    BtnButton.BackgroundTransparency = 1
+    BtnButton.Text = ""
+    BtnButton.Parent = BtnFrame
+
+    BtnButton.MouseButton1Click:Connect(function()
+        if scriptUrl and scriptUrl ~= "" then
+            pcall(function()
+                loadstring(game:HttpGet(scriptUrl))()
+            end)
+        end
+    end)
+
+    -- Hover effect (brighten overlay)
+    BtnButton.MouseEnter:Connect(function()
+        ImageOverlay.BackgroundTransparency = 0.2
+    end)
+    BtnButton.MouseLeave:Connect(function()
+        ImageOverlay.BackgroundTransparency = 0.5
+    end)
+
+    return BtnFrame
+end
+
+-- // ---- STATIC BUTTONS WITH IMAGES ----
+-- Replace the image IDs below with your own (Roblox asset ID or raw image URL)
+CreateImageButton(
+    "Pop It Trading",
+    "rbxassetid://9876543210",  -- <-- put real Pop It image ID
+    "https://raw.githubusercontent.com/yourRepo/PopItTrading.lua",
+    1
+)
+CreateImageButton(
+    "Brookhaven",
+    "rbxassetid://7225645840",  -- Brookhaven icon
+    "https://raw.githubusercontent.com/yourRepo/BrookhavenScript.lua",
+    2
+)
+CreateImageButton(
+    "MM2",
+    "rbxassetid://1234567890",  -- MM2 image
+    "https://raw.githubusercontent.com/yourRepo/MM2.lua",
+    3
+)
+CreateImageButton(
+    "Admin Scripts",
+    "rbxassetid://1111111111",  -- generic admin icon
+    "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source", -- example
+    4
+)
+CreateImageButton(
+    "Infinite Yield",
+    "rbxassetid://2222222222",  -- IY logo
+    "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source",
+    5
+)
+
+-- // ---- DYNAMIC GITHUB LOADER (optional) ----
+local MANIFEST_URL = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/scripts.lua"
+
+coroutine.wrap(function()
+    local success, result = pcall(function()
+        return game:HttpGet(MANIFEST_URL)
+    end)
+    if success and result then
+        local func, err = loadstring("return " .. result)
+        if func then
+            local scripts = func()
+            if type(scripts) == "table" then
+                local i = 6
+                for _, scriptData in ipairs(scripts) do
+                    if scriptData.Name and scriptData.URL then
+                        CreateImageButton(scriptData.Name, scriptData.Image or "", scriptData.URL, i)
+                        i = i + 1
+                    end
+                end
+            end
+        end
+    end
+end)()
