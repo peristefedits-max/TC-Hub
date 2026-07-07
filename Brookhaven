@@ -1,0 +1,252 @@
+-- // ---- BROOKHAVEN SUB-HUB ----
+function OpenBrookhavenHub()
+    -- Prevent opening twice
+    if gui:FindFirstChild("BrookSubHub") then return end
+
+    -- Sub-hub container (initially tiny for animation)
+    local subHub = Instance.new("Frame")
+    subHub.Name = "BrookSubHub"
+    subHub.Size = UDim2.new(0, 50, 0, 50)
+    subHub.Position = UDim2.new(0.5, -25, 0.5, -25)
+    subHub.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    subHub.BackgroundTransparency = 0.2
+    subHub.BorderSizePixel = 0
+    subHub.ClipsDescendants = true
+    subHub.Parent = gui
+
+    local subCorner = Instance.new("UICorner", subHub)
+    subCorner.CornerRadius = UDim.new(0, 12)
+
+    -- Welcome label (centered, fades in)
+    local welcomeLabel = Instance.new("TextLabel")
+    welcomeLabel.Size = UDim2.new(1, 0, 1, 0)
+    welcomeLabel.BackgroundTransparency = 1
+    welcomeLabel.Text = "Welcome To TC Hub"
+    welcomeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    welcomeLabel.Font = Enum.Font.GothamBold
+    welcomeLabel.TextSize = 0  -- start invisible
+    welcomeLabel.TextWrapped = true
+    welcomeLabel.Parent = subHub
+
+    -- Tween animation: grow from tiny to full size + show text
+    local growTween = game:GetService("TweenService"):Create(
+        subHub,
+        TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        { Size = UDim2.new(0, 300, 0, 200), Position = UDim2.new(0.5, -150, 0.5, -100) }
+    )
+    growTween:Play()
+
+    -- Show text after a small delay with a zoom effect
+    wait(0.2)
+    local textTween = game:GetService("TweenService"):Create(
+        welcomeLabel,
+        TweenInfo.new(0.4, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out),
+        { TextSize = 24 }
+    )
+    textTween:Play()
+
+    -- After welcome, fade text and expand into full hub
+    wait(1.0)
+    welcomeLabel:TweenSizeAndPosition(
+        UDim2.new(0, 0, 0, 0),
+        UDim2.new(0.5, 0, 0.5, 0),
+        Enum.EasingDirection.In,
+        Enum.EasingStyle.Quad,
+        0.3,
+        true,
+        function()
+            welcomeLabel:Destroy()
+            BuildBrookSubUI(subHub)
+        end
+    )
+end
+
+function BuildBrookSubUI(subHub)
+    -- Expand subHub to full working size
+    subHub.Size = UDim2.new(0, 280, 0, 380)
+    subHub.Position = UDim2.new(0.5, -140, 0.5, -190)
+    subHub.BackgroundTransparency = 0
+    subHub.ClipsDescendants = false
+
+    -- Header bar for sub-hub
+    local subHeader = Instance.new("TextLabel")
+    subHeader.Size = UDim2.new(1, 0, 0, 36)
+    subHeader.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    subHeader.Text = "Brookhaven Tools"
+    subHeader.TextColor3 = Color3.fromRGB(255, 255, 255)
+    subHeader.Font = Enum.Font.GothamBold
+    subHeader.TextSize = 16
+    subHeader.BorderSizePixel = 0
+    subHeader.Parent = subHub
+
+    local subHeaderCorner = Instance.new("UICorner", subHeader)
+    subHeaderCorner.CornerRadius = UDim.new(0, 10)
+
+    -- Close button for sub-hub
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 26, 0, 26)
+    closeBtn.Position = UDim2.new(1, -30, 0, 5)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.white
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 14
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Parent = subHub
+
+    local closeCorner = Instance.new("UICorner", closeBtn)
+    closeCorner.CornerRadius = UDim.new(0, 4)
+
+    closeBtn.MouseButton1Click:Connect(function()
+        subHub:Destroy()
+    end)
+
+    -- Content area
+    local content = Instance.new("Frame")
+    content.Size = UDim2.new(1, -10, 1, -46)
+    content.Position = UDim2.new(0, 5, 0, 41)
+    content.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    content.BorderSizePixel = 0
+    content.Parent = subHub
+
+    local contentCorner = Instance.new("UICorner", content)
+    contentCorner.CornerRadius = UDim.new(0, 8)
+
+    local layout = Instance.new("UIListLayout", content)
+    layout.Padding = UDim.new(0, 6)
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    -- Helper to create a sub-button
+    local function AddSubButton(text, callback)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, -10, 0, 38)
+        btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+        btn.Text = text
+        btn.TextColor3 = Color3.white
+        btn.Font = Enum.Font.Gotham
+        btn.TextSize = 14
+        btn.BorderSizePixel = 0
+        btn.Parent = content
+
+        local btnCorner = Instance.new("UICorner", btn)
+        btnCorner.CornerRadius = UDim.new(0, 6)
+
+        btn.MouseButton1Click:Connect(callback)
+        return btn
+    end
+
+    -- Teleport button (opens sub-options)
+    AddSubButton("Teleport", function()
+        -- You can implement actual teleport logic here or load a script from your GitHub
+        -- For now we'll show a notification
+        local notif = Instance.new("TextLabel")
+        notif.Size = UDim2.new(0, 200, 0, 30)
+        notif.Position = UDim2.new(0.5, -100, 1, 10)
+        notif.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        notif.Text = "Teleport selected (add your script!)"
+        notif.TextColor3 = Color3.white
+        notif.Font = Enum.Font.Gotham
+        notif.TextSize = 12
+        notif.BorderSizePixel = 0
+        notif.Parent = subHub
+        game:GetService("Debris"):AddItem(notif, 2)
+    end)
+
+    -- "To" dropdown (target selection)
+    local toDropdown = Instance.new("Frame")
+    toDropdown.Size = UDim2.new(1, -10, 0, 38)
+    toDropdown.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    toDropdown.BorderSizePixel = 0
+    toDropdown.Parent = content
+
+    local toCorner = Instance.new("UICorner", toDropdown)
+    toCorner.CornerRadius = UDim.new(0, 6)
+
+    local toLabel = Instance.new("TextLabel")
+    toLabel.Size = UDim2.new(1, 0, 1, 0)
+    toLabel.BackgroundTransparency = 1
+    toLabel.Text = "To: Me"
+    toLabel.TextColor3 = Color3.white
+    toLabel.Font = Enum.Font.Gotham
+    toLabel.TextSize = 14
+    toLabel.Parent = toDropdown
+
+    local toButton = Instance.new("TextButton")
+    toButton.Size = UDim2.new(1, 0, 1, 0)
+    toButton.BackgroundTransparency = 1
+    toButton.Text = ""
+    toButton.Parent = toDropdown
+
+    local toOptions = {"Me", "Cursor", "Nearest Player", "Random"}
+    local toIndex = 1
+
+    toButton.MouseButton1Click:Connect(function()
+        toIndex = (toIndex % #toOptions) + 1
+        toLabel.Text = "To: " .. toOptions[toIndex]
+    end)
+
+    -- Noclip toggle
+    local noclipBtn = AddSubButton("Noclip (Off)", nil)
+    local noclipEnabled = false
+    noclipBtn.MouseButton1Click:Connect(function()
+        noclipEnabled = not noclipEnabled
+        noclipBtn.Text = "Noclip (" .. (noclipEnabled and "On" or "Off") .. ")"
+        -- Toggle character noclip (example)
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            for _, v in ipairs(char:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = not noclipEnabled
+                end
+            end
+        end
+    end)
+
+    -- Fly toggle (simplified placeholder)
+    local flyBtn = AddSubButton("Fly (Off)", nil)
+    local flyEnabled = false
+    flyBtn.MouseButton1Click:Connect(function()
+        flyEnabled = not flyEnabled
+        flyBtn.Text = "Fly (" .. (flyEnabled and "On" or "Off") .. ")"
+        -- Implement actual fly (e.g., using BodyVelocity/BodyGyro) or load from GitHub
+        if flyEnabled then
+            -- Simple fly script example (place your own)
+            local player = game.Players.LocalPlayer
+            local char = player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local bv = Instance.new("BodyVelocity")
+                bv.Velocity = Vector3.new(0, 50, 0)
+                bv.MaxForce = Vector3.new(4000, 4000, 4000)
+                bv.Parent = char.HumanoidRootPart
+                -- Cleanup on toggle off
+                flyBtn:SetAttribute("FlyBV", bv)
+            end
+        else
+            local bv = flyBtn:GetAttribute("FlyBV")
+            if bv then bv:Destroy() end
+        end
+    end)
+
+    -- Resize/movable for sub-hub (optional, same logic as main)
+    local subDrag = false
+    local subDragStart, subStartPos
+    subHeader.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            subDrag = true
+            subDragStart = input.Position
+            subStartPos = subHub.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    subDrag = false
+                end
+            end)
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if subDrag and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - subDragStart
+            subHub.Position = UDim2.new(subStartPos.X.Scale, subStartPos.X.Offset + delta.X, subStartPos.Y.Scale, subStartPos.Y.Offset + delta.Y)
+        end
+    end)
+end
